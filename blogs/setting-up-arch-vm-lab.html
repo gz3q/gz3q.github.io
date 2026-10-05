@@ -173,7 +173,19 @@ sudo iptables -I DOCKER-USER -o virbr0 -j ACCEPT</code></pre>
 
       <p>The next thing I want to do is get <code>sshfs</code> working so I can access and edit the COMP2401 VM&rsquo;s files directly from my Arch host instead of working through the terminal inside virt-manager.</p>
 
-      <p>That&rsquo;s probably the next part of the setup, which I&rsquo;ll make another blog post :V</p>
+      <p>It's only one command: </p>
+
+  <pre><code>sudo sshfs -o reconnect,allow_other,uid=$(id -u),gid=$(id -g),ServerAliveInterval=15,ServerAliveCountMax=3 student@ip:/ /mnt/COMP2401-headless</code></pre>
+      
+      <p>This mounts the remote machine&rsquo;s filesystem at <code>/mnt/COMP2401-headless</code>, so I can browse and edit the VM&rsquo;s files from my Arch host as if they were local. The <code>:/</code> at the end of the remote address means that the mount starts at the VM&rsquo;s filesystem root. In practice, I could narrow that to something like <code>:/home/student</code> if I only wanted access to my home directory.</p>
+
+      <p>The connection is configured to recover if the VM temporarily disappears from the network. The keepalive settings send a check every 15 seconds and give up after three unanswered checks, which prevents a dead connection from hanging indefinitely. The local ownership settings make files appear to belong to my host user instead of being displayed with confusing numeric ownership, while <code>allow_other</code> permits other local users to access the mount as well.</p>
+      
+      <p>Once it is mounted, I can work with the VM&rsquo;s files directly through <code>/mnt/COMP2401-headless</code>. When I&rsquo;m finished, I can detach it with:</p>
+
+<pre><code>sudo fusermount -u /mnt/COMP2401-headless</code></pre>
+
+      <p>Thanks for reading!</p>
 
     </div>
 
