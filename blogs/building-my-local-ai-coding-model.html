@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#eceae2" />
+    <meta
+      name="description"
+      content="Building a private, CPU-only AI coding assistant on Arch with llama.cpp, DeepSeek Coder, and a Python interface."
+    />
+    <title>Building My Local AI Assistant · Alvin.</title>
+    <link rel="icon" href="data:," />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400..600&amp;display=swap"
+    />
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="site-title" href="../index.html">Alvin.</a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="../index.html#work">Work</a>
+          <a href="../index.html#writing">Writing</a>
+          <a
+            href="https://github.com/gz3q"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          >
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <article class="post">
+        <header class="post-header">
+          <h1>Building My Local AI Assistant</h1>
+          <p class="post-meta">
+            <time datetime="2026-11-09">9 November 2026</time>
+            <span aria-hidden="true">·</span> <span>Local AI</span>
+            <span aria-hidden="true">·</span> <span>~5-6 min</span>
+          </p>
+        </header>
+
+        <div class="post-body">
+          <p>
+            Running outta tokens – for learning trivial and fundamental
+            programming stuff from AI (which I do often) – was a headache.
+            Having 3 different accounts across 3 different websites was a
+            hassle. So, I decided that having an AI coding assistant would be
+            more convenient, and fun to set up as well!
+          </p>
+
+          <p>
+            So I ran the whole thing on my CPU, with python, llama.cpp and a
+            DeepSeek 6.7B Coder Instruct.
+          </p>
+
+          <p>
+            I had a lot of versions of the python interface and tweaking done to
+            optimize the output reply. (more on that later)
+          </p>
+
+          <h2 id="what-my-laptop-actually-has">What my laptop actually has</h2>
+
+          <p>Before downloading anything, I checked what I was working with.</p>
+
+          <pre><code>lscpu | grep -i "model name"</code></pre>
+
+          <p>
+            It's an Intel Core 7 150U. The rest of <code>lscpu</code> says that
+            there are 10 physical cores and 12 threads.
+            <code>lscpu -e</code> shows that threads 0,1 share one core, and
+            threads 2,3 share another core (therefore, both cores are
+            performance cores).
+          </p>
+
+          <p>
+            Hence, the chip mixes 2 performance cores with 8 efficiency cores.
+          </p>
+
+          <p>Then memory:</p>
+
+          <pre><code>free -h</code></pre>
+
+          <p>
+            It reports 15Gib total. I only have integrated graphics, so the CPU
+            and that memory set the rules.
+          </p>
+
+          <h2 id="installing-the-build-tools">Installing the build tools</h2>
+
+          <p>Everything here is on Arch.</p>
+
+          <pre><code>sudo pacman -S base-devel cmake git gcc
+sudo pacman -S python python-pip</code></pre>
+
+          <p>For better CPU performance I also installed OpenBLAS:</p>
+
+          <pre><code>sudo pacman -S openblas</code></pre>
+
+          <p>
+            The first command is what llama.cpp needs to compile, and the second
+            is for the chat script later. OpenBLAS is an open-source library
+            that does the heavy matrix math on the CPU alone, which suits a
+            laptop with no GPU. As far as I understand it, it helps most while
+            the model is reading your prompt and less while it writes the
+            answer.
+          </p>
+
+          <h2 id="building-llama-cpp">Building llama.cpp</h2>
+
+          <pre><code>git clone https://github.com/ggml-org/llama.cpp.git
+cd llama.cpp
+cmake -B build -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS
+cmake --build build --config Release</code></pre>
+
+          <h2 id="picking-a-model-twice">Picking a model, twice</h2>
+
+          <p>
+            I started with Qwen 2.5 Coder 7B. Then I switched because i wanted
+            to try out the older DeepSeek models. (If there is a better fit for
+            my specs, meh, i can easily switch it out). So, I decided on the
+            DeepSeek Coder 6.7B Instruct instead for this project.
+          </p>
+
+          <p>
+            I went with the Q5_K_M version, a 5-bit quantization. According to
+            TheBloke's model page, it's a 4.79 GB file and needs about 7.3 GB of
+            RAM to run. My backup file was the Q4_K_M file, which is smaller at
+            4.08 GB. On my laptop, Q5 worked perfectly fine.
+          </p>
+
+          <pre><code>mkdir -p ~/llm/models/gguf
+cd ~/llm/models/gguf
+wget https://huggingface.co/TheBloke/deepseek-coder-6.7B-instruct-GGUF/resolve/main/deepseek-coder-6.7b-instruct.Q5_K_M.gguf</code></pre>
+
+          <h2 id="skipping-the-cli">Skipping the CLI</h2>
+
+          <p>
+            Rather than using the CLI every time, a Python script is more
+            convenient. This was my first version. It's partly hand-written,
+            from back when I still planned to use Qwen. This is not the final
+            code at all!
+          </p>
+
+          <pre><code>import os
+from llama_cpp import Llama
+
+# initializing the model
+llm = Llama(
+    model_path=os.path.expanduser("~/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf"),
+    n_gpu_layers=0,
+    n_ctx=2048,
+    n_threads=8,
+    verbose=False
+)
+
+def chat_with_model(prompt, max_tokens=512):
+    response = llm.create_completion(
+        prompt=prompt,
+        max_tokens=max_tokens,
+        temperature=0.7,
+        top_p=0.9,
+        stop=["&lt;/s&gt;", "User:", "Assistant:"]
+    )
+    return response["choices"][0]["text"].strip()
+
+if __name__ == "__main__":
+    print("Qwen 2.5 Coder 7B - Local Coding Assistant")
+    print("Type 'exit' to quit\n")
+
+    while True:
+        user_input = input("You: ").strip()
+        if user_input.lower() == "exit":
+            break
+        if not user_input:
+            continue
+
+        response = chat_with_model(user_input)
+        print(f"Assistant: {response}\n")</code></pre>
+
+          <p>
+            It loads the model through the llama-cpp-python bindings.
+            <code>n_gpu_layers=0</code> keeps everything on the CPU,
+            <code>n_ctx</code> is the context window, and
+            <code>n_threads</code> is how many threads it may use. It also sends
+            the prompt as raw text and forgets everything between questions,
+            which we do not want obviously lmao
+          </p>
+
+          <p>
+            I fed it to Claude and asked for something more in-depth with
+            Doxygen style comments, tuned for my laptop's specs. What came back
+            is
+            <a
+              class="code-link"
+              href="https://github.com/gz3q/local-llm-python-interface-script/blob/main/deepseek_chat_no_style.py"
+              target="_blank"
+              rel="noopener noreferrer"
+              ><code>deepseek_chat_no_style.py</code></a
+            >. It starts <code>llama-server</code> from the build in the earlier
+            step and talks to it over HTTP on <code>127.0.0.1</code>, so by
+            default nothing is exposed to the network. It remembers the
+            conversation, wraps each message in DeepSeek's
+            <code>### Instruction:</code> format, drops the oldest turns when
+            the 4096-token context fills up, and prints tokens per second after
+            every reply. It only needs the Python standard library (this will be
+            expanded later, read on).
+          </p>
+
+          <p>
+            By default it uses 6 threads for generating the answer and 12 for
+            reading the prompt, worked out from the CPU count.
+          </p>
+
+          <h2 id="why-the-output-looked-broken">
+            Why the output looked broken
+          </h2>
+
+          <p>
+            The problem with this version is that the model answers in Markdown,
+            and the script just prints it.
+          </p>
+
+          <figure class="post-figure">
+            <img
+              src="../images/building-my-local-ai-coding-model/wo-venv-plain.png"
+              alt="Terminal output from the local coding assistant without Rich, showing unrendered Markdown backticks and code fences"
+              loading="lazy"
+            />
+            <figcaption>
+              Without rich: the backticks and fences are all still there.
+            </figcaption>
+          </figure>
+
+          <p>
+            The fix was <code>rich</code>, a Python library that renders
+            Markdown in the terminal. But the reply arrives one token at a time,
+            so I couldn't wait and render it at the end. I had to stream the
+            output through rich's live display, which redraws the Markdown every
+            time a new piece comes in.
+          </p>
+
+          <p>
+            <code>rich</code> needs a pip install, so I put it in a venv. To
+            avoid repeating that setup, I wrote a bash script,
+            <code>ds-chat.sh</code>, that automates it:
+          </p>
+
+          <pre><code>#!/bin/bash
+
+if [ ! -d ~/llm/scripts/venv ]; then
+    python -m venv venv
+    echo "venv created successfully!"
+else
+    echo "venv already existed! Continuing..."
+fi
+
+source ~/llm/scripts/venv/bin/activate
+
+if python -m pip freeze | grep -qi "rich"; then
+    echo "rich is already installed! Continuing..."
+else
+    if python -m pip install rich; then
+        echo "rich installed successfully!"
+    else
+        echo "rich could not be installed!"
+        exit 1
+    fi
+fi
+
+python ~/llm/scripts/deepseek_chat.py
+deactivate</code></pre>
+
+          <p>
+            I then bound the script to an alias in my
+            <code>.zshrc</code>
+          </p>
+
+          <pre><code>alias ds-chat="~/scripts/bash/ds-chat.sh"</code></pre>
+
+          <p>
+            The rich version is
+            <a
+              class="code-link"
+              href="https://github.com/gz3q/local-llm-python-interface-script/blob/main/deepseek_chat.py"
+              target="_blank"
+              rel="noopener noreferrer"
+              ><code>deepseek_chat.py</code></a
+            >. Apart from how it prints, it's identical to the first one, and
+            the rich changes are the part I wrote by hand. The changes are in
+            the function
+            <code>def ask(self, user_msg: str, out=sys.stdout)</code>.
+          </p>
+
+          <figure class="post-figure">
+            <img
+              src="../images/building-my-local-ai-coding-model/venv-rich-chat.png"
+              alt="Terminal output from the local coding assistant with Rich rendering the model's Markdown response"
+              loading="lazy"
+            />
+            <figcaption>With rich: the same answer, rendered.</figcaption>
+          </figure>
+
+          <p>
+            The line at the bottom is the script's stats line. In that
+            screenshot it shows 6.1 tokens per second for generation and 20.9
+            for reading the prompt. On another tested basic reply it showed 7.6
+            for generation, and that number held up on other prompts as well.
+            These are not a proper benchmark, but for a CPU-only laptop, it was
+            fine for me.
+          </p>
+
+          <h2 id="whats-next">What's next</h2>
+
+          <p>
+            Right now, flags such as <code>--llama-bench</code> are not working
+            because its not being fed into the actual run cmd of the model. If I
+            fix this bug in the near future, this will be updated.
+          </p>
+
+          <p>
+            Also, the rich version redraws the whole reply for every new token,
+            which feels like the wrong way to do it. If there is a better way,
+            I’ll do it that way!
+          </p>
+
+          <p>Thanks for reading!</p>
+        </div>
+
+        <p class="post-back"><a href="../index.html">Back to index</a></p>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <span>&copy; 2026 Alvin Kapoor</span>
+        <a
+          href="https://github.com/gz3q/gz3q.github.io"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Source</a
+        >
+      </div>
+    </footer>
+
+    <script src="../script.js" defer></script>
+  </body>
+</html>
