@@ -1,16 +1,15 @@
 /* ==========================================================================
    Alvin. — personal site
-   Light only. Typography first. One column, wide margins, no ornament.
    ========================================================================== */
 
 :root {
   /* colour */
-  --paper: #eceae2; /* page */
-  --paper-sunk: #e1ded3; /* code */
-  --ink: #2b2622; /* espresso, never pure black */
-  --ink-soft: #4b443d;
-  --muted: #665e54;
-  --rule: #cdc9ba;
+  --paper: #f0ede4; /* page */
+  --paper-sunk: #e6e2d6; /* code */
+  --ink: #38322c; /* espresso, never pure black */
+  --ink-soft: #575047;
+  --muted: #6d6559;
+  --rule: #d6d2c3;
   --link: #2f4d66;
   --link-hover: #1b3042;
   --select: #c7d2da;
@@ -140,54 +139,72 @@ a:hover {
   text-underline-offset: 0.25em;
 }
 
-/* ---------- home ---------- */
+/* ---------- landing ---------- */
 
-.lede {
-  margin-block: clamp(3.5rem, 11vw, 7rem) clamp(3.5rem, 10vw, 6.5rem);
+.landing {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
 }
-.lede p {
-  max-width: 27em;
+.landing main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem var(--gutter) 2rem;
+  text-align: center;
+}
+.cat {
+  width: max-content;
+  max-width: 100%;
   margin: 0;
-  font-size: clamp(1.65rem, 1.1rem + 2.2vw, 2.4rem);
-  font-weight: 400;
-  line-height: 1.26;
-  letter-spacing: -0.018em;
-  text-wrap: pretty;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  color: var(--ink-soft);
+  font-size: clamp(0.8rem, 3.4vw + 0.1rem, 1.1rem);
+  line-height: 1.2;
+  text-align: left;
+  overflow: visible;
+}
+.landing-title {
+  margin: 1.6rem 0 0;
+  font-size: 2.1rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.landing .site-nav {
+  justify-content: center;
+  margin-top: 1.5rem;
+  font-size: 1rem;
+}
+.landing .site-footer {
+  margin-top: 0;
 }
 
-.block {
-  display: grid;
-  grid-template-columns: 7.5rem minmax(0, 1fr);
-  column-gap: 2rem;
-  margin-bottom: 3.75rem;
-}
+/* ---------- list pages (posts, projects, about) ---------- */
 
-.label {
-  margin: 0;
-  padding-top: 0.45rem;
-  font-family: var(--sans);
-  font-size: 0.9rem;
+.page {
+  padding-top: clamp(3rem, 8vw, 5rem);
+}
+.page > h1 {
+  margin: 0 0 2.75rem;
+  font-size: clamp(2.05rem, 1.35rem + 3vw, 3.1rem);
   font-weight: 500;
-  line-height: 1.4;
-  color: var(--muted);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
 }
-
-.entries {
+.list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-.entries li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
-  column-gap: 1.5rem;
-  row-gap: 0.2rem;
+.list li + li {
+  margin-top: 2.25rem;
 }
-.entries li + li {
-  margin-top: 2rem;
-}
-
 .entry-title {
   font-size: 1.3rem;
   font-weight: 500;
@@ -195,25 +212,22 @@ a:hover {
   letter-spacing: -0.005em;
   color: var(--ink);
   text-decoration-color: var(--rule);
-  text-decoration-thickness: 1px;
   text-underline-offset: 0.22em;
 }
 .entry-title:hover {
   color: var(--link);
   text-decoration-color: currentColor;
 }
-
 .entry-meta {
+  display: block;
+  margin-top: 0.2rem;
   font-family: var(--sans);
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
-  white-space: nowrap;
 }
-
 .entry-note {
-  grid-column: 1 / -1;
-  margin: 0;
+  margin: 0.45rem 0 0;
   color: var(--ink-soft);
   font-size: 1.05rem;
   line-height: 1.55;
@@ -464,25 +478,6 @@ pre code {
     font-size: 1.125rem;
   }
 
-  .block {
-    grid-template-columns: minmax(0, 1fr);
-    row-gap: 0.9rem;
-    margin-bottom: 3rem;
-  }
-  .label {
-    padding-top: 0;
-  }
-
-  .entries li {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .entry-meta {
-    order: 2;
-  }
-  .entry-note {
-    order: 3;
-  }
-
   .post-body h2 {
     font-size: 1.45rem;
     margin-top: 2.9rem;
@@ -536,26 +531,84 @@ pre code {
   line-height: 1.5;
 }
 
-/* Links to source-code files inside articles */
+/* ---------- post additions ---------- */
 
-.post-body a.code-link {
-  color: #75b9e7;
-  text-decoration: underline;
-  text-decoration-thickness: 1.5px;
-  text-decoration-color: #75b9e7;
-  text-underline-offset: 0.2em;
-  font-weight: 500;
+.post-subtitle {
+  margin: 1rem 0 0;
+  color: var(--ink-soft);
+  font-size: 1.25rem;
+  line-height: 1.4;
+  text-wrap: balance;
 }
 
+/* links to source files inside articles: same link colour, slightly heavier */
+.post-body a.code-link {
+  font-weight: 500;
+  text-decoration-color: rgba(47, 77, 102, 0.5);
+}
 .post-body a.code-link code {
   color: inherit;
   background: var(--paper-sunk);
-  padding: 0.12em 0.4em;
-  border-radius: 3px;
 }
 
-.post-body a.code-link:hover {
-  color: #a0d2f2;
-  text-decoration-color: #a0d2f2;
-  text-decoration-thickness: 2px;
+.site-nav a[aria-current] {
+  color: var(--ink);
+}
+
+/* line numbers (added by script.js on multi-line blocks) */
+
+pre.has-ln {
+  display: flex;
+}
+.ln {
+  flex: none;
+  margin-right: 1.1rem;
+  padding-right: 0.9rem;
+  border-right: 1px solid var(--rule);
+  color: var(--muted);
+  opacity: 0.8;
+  text-align: right;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* syntax colours: muted, readable on the sunk paper tone */
+
+.tok-comment {
+  color: #6f675b;
+  font-style: italic;
+}
+.tok-string {
+  color: #4f6b3a;
+}
+.tok-number {
+  color: #96522d;
+}
+.tok-keyword {
+  color: #7b4263;
+}
+.tok-type {
+  color: #2f6a73;
+}
+.tok-function {
+  color: var(--link);
+}
+
+@media (max-width: 40rem) {
+  .site-header .wrap {
+    flex-wrap: wrap;
+    row-gap: 0.6rem;
+  }
+  .site-nav {
+    gap: 1.1rem;
+  }
+  .landing-title {
+    font-size: 1.85rem;
+  }
+  .landing .site-nav {
+    font-size: 0.95rem;
+  }
+  .post-subtitle {
+    font-size: 1.12rem;
+  }
 }
